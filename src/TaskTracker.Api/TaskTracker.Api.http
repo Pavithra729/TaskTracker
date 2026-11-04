@@ -1,6 +1,18 @@
-@TaskTracker.Api_HostAddress = http://localhost:5177
+@baseUrl = http://localhost:5177
 
-GET {{TaskTracker.Api_HostAddress}}/weatherforecast/
-Accept: application/json
+### List all tasks
+GET {{baseUrl}}/api/tasks
 
-###
+### Get one task
+GET {{baseUrl}}/api/tasks/1
+
+### Create a task
+POST {{baseUrl}}/api/tasks
+Content-Type: application/json
+
+{
+  "title": "Write xUnit tests"
+}
+
+### Missing task (expect 404)
+GET {{baseUrl}}/api/tasks/99
