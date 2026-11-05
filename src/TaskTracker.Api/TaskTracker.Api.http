@@ -11,8 +11,29 @@ POST {{baseUrl}}/api/tasks
 Content-Type: application/json
 
 {
-  "title": "Write xUnit tests"
+  "title": "Portfolio project"
 }
 
 ### Missing task (expect 404)
 GET {{baseUrl}}/api/tasks/99
+
+### Mark task 1 as done
+PUT {{baseUrl}}/api/tasks/1
+Content-Type: application/json
+
+{
+  "title": "Learn Docker",
+  "isDone": true
+}
+
+### Delete task 2
+DELETE {{baseUrl}}/api/tasks/2
+
+### Update a missing task (expect 404)
+PUT {{baseUrl}}/api/tasks/99
+Content-Type: application/json
+
+{
+  "title": "Does not exist",
+  "isDone": true
+}

@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using TaskTracker.Api.Data;
 using TaskTracker.Api.Models;
 
 namespace TaskTracker.Api.Controllers;
@@ -7,19 +9,24 @@ namespace TaskTracker.Api.Controllers;
 [Route("api/[controller]")]
 public class TasksController : ControllerBase
 {
-    private static readonly List<TaskItem> _tasks = new();
-    private static int _nextId = 1;
+    private readonly AppDbContext _db;
+
+    public TasksController(AppDbContext db)
+    {
+        _db = db;
+    }
 
     [HttpGet]
-    public ActionResult<IEnumerable<TaskItem>> GetAll()
+    public async Task<ActionResult<IEnumerable<TaskItem>>> GetAll()
     {
-        return Ok(_tasks);
+        var tasks = await _db.Tasks.OrderBy(t => t.Id).ToListAsync();
+        return Ok(tasks);
     }
 
     [HttpGet("{id:int}")]
-    public ActionResult<TaskItem> GetById(int id)
+    public async Task<ActionResult<TaskItem>> GetById(int id)
     {
-        var task = _tasks.FirstOrDefault(t => t.Id == id);
+        var task = await _db.Tasks.FindAsync(id);
         if (task is null)
         {
             return NotFound();
@@ -28,16 +35,45 @@ public class TasksController : ControllerBase
     }
 
     [HttpPost]
-    public ActionResult<TaskItem> Create(TaskItem input)
+    public async Task<ActionResult<TaskItem>> Create(TaskItem input)
     {
         var task = new TaskItem
         {
-            Id = _nextId++,
             Title = input.Title,
             IsDone = false,
             CreatedAt = DateTime.UtcNow
         };
-        _tasks.Add(task);
+        _db.Tasks.Add(task);
+        await _db.SaveChangesAsync();
         return CreatedAtAction(nameof(GetById), new { id = task.Id }, task);
+    }
+
+        [HttpPut("{id:int}")]
+    public async Task<IActionResult> Update(int id, TaskItem input)
+    {
+        var task = await _db.Tasks.FindAsync(id);
+        if (task is null)
+        {
+            return NotFound();
+        }
+
+        task.Title = input.Title;
+        task.IsDone = input.IsDone;
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var task = await _db.Tasks.FindAsync(id);
+        if (task is null)
+        {
+            return NotFound();
+        }
+
+        _db.Tasks.Remove(task);
+        await _db.SaveChangesAsync();
+        return NoContent();
     }
 }
