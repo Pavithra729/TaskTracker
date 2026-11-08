@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore -c Release
+
+      - name: Test
+        run: dotnet test --no-build -c Release --verbosity normal
+
+  docker:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Build image
+        run: docker build -t tasktracker-api .
+
+      - name: Run container
+        run: docker run -d --name api -p 8080:8080 tasktracker-api
+
+      - name: Smoke test the API
+        run: |
+          for i in $(seq 1 15); do
+            curl -fs http://localhost:8080/api/tasks && break
+            sleep 2
+          done
+          curl -fs -X POST http://localhost:8080/api/tasks -H "Content-Type: application/json" -d '{"title":"From CI"}'
+          curl -fs http://localhost:8080/api/tasks | grep "From CI"
+
+      - name: Show container logs
+        if: always()
+        run: docker logs api
